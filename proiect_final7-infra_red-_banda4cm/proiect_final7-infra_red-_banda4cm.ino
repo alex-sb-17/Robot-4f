@@ -4,13 +4,16 @@
 #include <IRremote.h>
 #include <Wire.h>
 
-#define SLAVE_ADDRESS 9
-#define ANSWERSIZE 1  // lungime raspuns asteptat de la slave
+//#define SLAVE_ADDRESS 9
+//#define ANSWERSIZE 1  // lungime raspuns asteptat de la slave
 
 // pin infrarosu
-int pinIR = 3;
+int pinIR = 9;
 IRrecv irrecv(pinIR);  // initializare library
 decode_results results;  // in results primeste rezulatele
+
+// builtin led state
+byte builtin_LED_prevState = 0;
 
 // pini comanda motoare
 int motor_a1 = 5;
@@ -48,6 +51,8 @@ void setup() {
   pinMode(S3, INPUT);
   pinMode(S4, INPUT);
   pinMode(S5, INPUT);
+
+  pinMode(13, OUTPUT);  // builtin led
   
   irrecv.enableIRIn();
   Wire.begin();
@@ -57,6 +62,10 @@ void setup() {
 void loop() {
   // directie: 0 stop; 1 inainte; 2 inapoi; 3 dr larg; 4 dr strans; 5 stg larg; 6 stg strans; 10 stop rapid
   //test();
+  if(!(millis() % 500))  // standby, builtin led on/off
+  {
+    builtinLedOnOff();  
+  }
   if(irrecv.decode(&results)) // daca senzorul primeste date
   {
     //Serial.print("cod IRL ");
@@ -135,4 +144,17 @@ void loop() {
     if(cod_comanda == 0x44bb50af) controlDirectie(2, 255);
     if(cod_comanda == 0x44bb807f) controlDirectie(3, 255);
     if(cod_comanda == 0x44bbc23d) controlDirectie(5, 255);
+  }
+  void builtinLedOnOff()
+  {
+    if (builtin_LED_prevState == 0)
+    {
+      digitalWrite(13, HIGH);
+      builtin_LED_prevState = 1;
+    }
+    else
+    {
+      digitalWrite(13, LOW);
+      builtin_LED_prevState = 0;
+    }
   }
