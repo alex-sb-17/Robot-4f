@@ -2,10 +2,12 @@
 #include "control_motoare.h"
 
 #include <IRremote.h>
+#include <WiFiClient.h>
 #include <Wire.h>
 
-//#define SLAVE_ADDRESS 9
+#define SLAVE_ADDRESS 0x08
 //#define ANSWERSIZE 1  // lungime raspuns asteptat de la slave
+int received_from_WiFi = 0;  // initializat cu 0 (comanda de stop)
 
 // pin infrarosu
 int pinIR = 9;
@@ -41,7 +43,6 @@ void setup() {
   pinMode(motor_a2, OUTPUT);
   pinMode(motor_b1, OUTPUT);
   pinMode(motor_b2, OUTPUT);
-  
 
   pinMode(trig, OUTPUT);
   pinMode(echo, INPUT);
@@ -53,19 +54,24 @@ void setup() {
   pinMode(S5, INPUT);
 
   pinMode(13, OUTPUT);  // builtin led
+
+  Wire.begin(SLAVE_ADDRESS);
+  Wire.onRequest(requestEvent);
+  Wire.onReceive(receiveEvent);
   
   irrecv.enableIRIn();
-  Wire.begin();
   initializareMotoare(motor_a1, motor_a2, motor_b1, motor_b2);
 }
 
 void loop() {
   // directie: 0 stop; 1 inainte; 2 inapoi; 3 dr larg; 4 dr strans; 5 stg larg; 6 stg strans; 10 stop rapid
   //test();
+  
   if(!(millis() % 500))  // standby, builtin led on/off
   {
     builtinLedOnOff();  
   }
+  
   if(irrecv.decode(&results)) // daca senzorul primeste date
   {
     //Serial.print("cod IRL ");
@@ -75,6 +81,8 @@ void loop() {
     irrecv.resume();  // sterge din memorie
   }
 
+  controlDirectie(received_from_WiFi, 255);
+  
   
   /*
   if(!digitalRead(S3))
@@ -137,14 +145,29 @@ void loop() {
     controlDirectie(0, 255);
     delay(3000); */
   }
+  
   void tratareComandaIR(long int cod_comanda)
   {
-    if(cod_comanda == 0x44bb40bf) controlDirectie(0, 255);
-    if(cod_comanda == 0x44bb609f) controlDirectie(1, 255);
-    if(cod_comanda == 0x44bb50af) controlDirectie(2, 255);
-    if(cod_comanda == 0x44bb807f) controlDirectie(3, 255);
-    if(cod_comanda == 0x44bbc23d) controlDirectie(5, 255);
+    if(cod_comanda == 0x44bb40bf) controlDirectie(0, 255); //stop
+    if(cod_comanda == 0x44bb609f) controlDirectie(1, 255); //inainte
+    if(cod_comanda == 0x44bb50af) controlDirectie(2, 255); //inapoi
+    if(cod_comanda == 0x44bb807f) controlDirectie(3, 255); //dreapta larg
+    if(cod_comanda == 0x44bbc23d) controlDirectie(5, 255); //stanga larg
   }
+
+  void receiveEvent()
+  {
+    received_from_WiFi = Wire.read();
+    Serial.println(received_from_WiFi);
+  }
+
+  void requestEvent()
+  {
+    int i = 7;
+    Wire.write(i);
+  //Serial.println(i);
+  }
+  
   void builtinLedOnOff()
   {
     if (builtin_LED_prevState == 0)
