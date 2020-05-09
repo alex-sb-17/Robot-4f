@@ -11,8 +11,7 @@ void initializareMotoare(int motorA1A, int motorA1B, int motorB1A, int motorB1B)
   MotorA_1B = motorA1B;
   MotorB_1A = motorB1A;
   MotorB_1B = motorB1B;
-  
-}
+  }
 
 void controlDirectie (int directie , int viteza) 
  {
@@ -49,8 +48,8 @@ void controlDirectie (int directie , int viteza)
      case 4:
         // DREAPTA STRANS
         digitalWrite(MotorA_1A, LOW);
-        digitalWrite(MotorA_1B, HIGH);
-        digitalWrite(MotorB_1A, HIGH);
+        analogWrite(MotorA_1B, viteza);
+        analogWrite(MotorB_1A, viteza);
         digitalWrite(MotorB_1B, LOW);
         break;
      case 5:
@@ -62,10 +61,10 @@ void controlDirectie (int directie , int viteza)
         break;
      case 6:
         // STANGA STRANS
-        digitalWrite(MotorA_1A, HIGH);
+        analogWrite(MotorA_1A, viteza);
         digitalWrite(MotorA_1B, LOW);
         digitalWrite(MotorB_1A, LOW);
-        digitalWrite(MotorB_1B, HIGH);
+        analogWrite(MotorB_1B, viteza);
         break;
      case 10:
         // STOP RAPID
