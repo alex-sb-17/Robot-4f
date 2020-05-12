@@ -2,12 +2,12 @@
 #include <Wire.h>
 #include <Servo.h>
 #include <IRremote.h>
+#include "TimerOne.h" //x
 #include "ultrasunete.h"
 #include "control_motoare.h"
 
 
-#define SLAVE_ADDRESS 0x08
-//#define ANSWERSIZE 1  // lungime raspuns asteptat de la slave
+#define SLAVE_ADDRESS 0x08    //#define ANSWERSIZE 1  // lungime raspuns asteptat de la slave
 int received_from_WiFi = 0;  // initializat cu 0 (comanda de stop)
 
 // stare initiala robot: 1 = urmarire linie, 2 = ocolire obstacole, 3 = telecomandat IR, 4 = telecomandat WiFi
@@ -15,12 +15,21 @@ byte stare_robot = 1;
 
 // servomotor
 Servo servomotor;
-int pinServo = 12;
+int pinServo = 9;
 
 // pin infrarosu
-int pinIR = 9;
+int pinIR = 12;
 IRrecv irrecv(pinIR);  // initializare library
 decode_results results;  // in results primeste rezulatele
+
+//interrupts
+const byte MOTOR1 = 2;  // Motor 1 Interrupt Pin - INT 0 //x
+const byte MOTOR2 = 3;  // Motor 2 Interrupt Pin - INT 1 //x
+
+// Integers for pulse counters
+unsigned int counter1 = 0; //x
+unsigned int counter2 = 0; //x
+float diskslots = 20; //x
 
 // builtin led state
 byte builtin_LED_prevState = 0;
@@ -70,8 +79,19 @@ void setup() {
   Wire.onReceive(receiveEvent);
 
   servomotor.attach(pinServo);
+  servomotor.write(0);
+  delay(1000);
+  servomotor.write(180);
+  delay(1000);
   servomotor.write(90);
+  delay(1000);
+  servomotor.detach();
+  
   irrecv.enableIRIn();
+  
+  attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, RISING);  //x Increase counter 1 when speed sensor pin goes High
+  attachInterrupt(digitalPinToInterrupt (MOTOR2), ISR_count2, RISING);  //x Increase counter 2 when speed sensor pin goes High
+  
   initializareMotoare(motor_a1, motor_a2, motor_b1, motor_b2);
 }
 
@@ -83,9 +103,10 @@ void loop() {
   {
     builtinLedOnOff();  
   } */
-  Serial.println("stare r = ");
-  Serial.print(stare_robot);
-  Serial.println("");
+  //Serial.println("stare r = ");
+  //Serial.print(stare_robot);
+  //Serial.println("");
+  
   switch(stare_robot)
   {
     case 1:
@@ -99,6 +120,9 @@ void loop() {
     case 2:
     {
       ocolireObstacole();
+      //intoarce_90_180(90, 6);
+      //stare_robot = 1;
+      //delay(3000);
       break;
     }
     case 3:
@@ -116,9 +140,9 @@ void loop() {
   /////////////////////////////////////////////////////////////////////////
   if(irrecv.decode(&results)) // daca senzorul primeste date
     {
-      //Serial.print("cod IRL ");
-      //Serial.print(results.value, HEX);  // afisare cod IR in hexa
-      //Serial.println("");
+      Serial.print("cod IRL ");
+      Serial.print(results.value, HEX);  // afisare cod IR in hexa
+      Serial.println("");
       tratareComandaIR(results.value);
       irrecv.resume();  // sterge din memorie
     }
@@ -146,6 +170,7 @@ void loop() {
       controlDirectie(0, 255);  */
     controlDirectie(1*!digitalRead(S3) + 5*!digitalRead(S2) + 3*!digitalRead(S4), 255);
   }
+
 void ocolireObstacole()
 {
     //verifica distanta pana la obstacolul din fata
@@ -162,56 +187,106 @@ void ocolireObstacole()
     if (citesteDistanta(trig, echo) < 30)
     {
       Serial.println("<30 =");
-      Serial.print(citesteDistanta(trig, echo));
+      Serial.println(citesteDistanta(trig, echo));
       controlDirectie(0, 255);
       delay(1000);
-      servomotor.write(0);
+      //servomotor.write(0);
+      actioneazaServo(0);
       delay(1000);
       distanta_obstacol_dreapta = citesteDistanta(trig, echo);
       delay(100);
-      servomotor.write(180);
+      //servomotor.write(180);
+      actioneazaServo(180);
       delay(1000);
       distanta_obstacol_stanga = citesteDistanta(trig, echo);
       delay(100);
+      actioneazaServo(90);
       if(distanta_obstacol_dreapta < 50 && distanta_obstacol_stanga < 50)
       {
-        controlDirectie(0, 255);
-        intoarce180();
+        delay(500);
+        intoarce_90_180(180, 4); // intoarce 180 grade, la dreapta
+        delay(500);
         controlDirectie(1, 255);
       }
       else
       {
         if(distanta_obstacol_dreapta < distanta_obstacol_stanga)
         {
-          intoarceStanga90();
+          intoarce_90_180(90, 6);
+          delay(500);
           controlDirectie(1, 255);
         }
         else
         {
-          intoarceDreapta90();
+          intoarce_90_180(90, 4);
+          delay(500);
           controlDirectie(1, 255);
         }
         if(distanta_obstacol_dreapta == distanta_obstacol_stanga)
         {
-          intoarceDreapta90();
+          intoarce_90_180(90, 4);
+          delay(500);
           controlDirectie(1, 255);
         }
       }
-      servomotor.write(90);
+      //servomotor.write(90);
+      //actioneazaServo(90);
     }
   }
 }
-
+void actioneazaServo(int pozitie_servo)
+{
+  Serial.println("servo actionat");
+  servomotor.attach(pinServo);
+  servomotor.write(pozitie_servo);
+  delay(200);
+  servomotor.detach();
+  delay(50);
+}
+void intoarce_90_180(byte grade, byte directie_intoarcere)
+{
+  controlDirectie(0, 255);  // opreste
+  counter1 = 0;
+  counter2 = 0;
+  long int k = millis();
+  while (counter1 < 24/(180/grade) && counter2 < 24/(180/grade)) // 24 gasit experimental pt 180 grade
+  {
+    controlDirectie(directie_intoarcere, 170); // directie - 4 dr sau 6 stg
+    //delay(2);
+  };
+  //Serial.println(millis() - k);
+  controlDirectie(0, 250);
+}
+/*
 void intoarce180()
 {
-  controlDirectie(4, 170);
-  delay(400);
+  controlDirectie(0, 255);
+  //controlDirectie(4, 170);
+  //delay(400);
+  //controlDirectie(0, 250);
+  counter1 = 0;
+  counter2 = 0;
+  long int k = millis();
+  while (counter1 < 25 && counter2 < 25)
+  {
+    controlDirectie(4, 170);
+    //delay(2);
+  };
+  //Serial.println(millis() - k);
   controlDirectie(0, 250);
+  //delay(2000);
 }
 void intoarceStanga90()
 {
-  controlDirectie(6, 170);
-  delay(200);
+  //controlDirectie(6, 170);
+  //delay(200);
+  controlDirectie(0, 255);
+  counter1 = 0;
+  counter2 = 0;
+  do
+  {
+    controlDirectie(6, 170);
+  }while (counter1 < 15 && counter2 < 15);
   controlDirectie(0, 250);
 }
 void intoarceDreapta90()
@@ -219,7 +294,7 @@ void intoarceDreapta90()
   controlDirectie(4, 170);
   delay(200);
   controlDirectie(0, 250);
-}
+}*/
 void tratareComandaIR(long int cod_comanda)
   {/*
     stare_robot = 2;
@@ -290,6 +365,19 @@ void tratareComandaIR(long int cod_comanda)
       builtin_LED_prevState = 0;
     }
   }
+  
+//x fctii interrupts  
+void ISR_count1()  
+{
+  counter1++;  // increment Motor 1 counter value
+} 
+ 
+// Motor 2 pulse count ISR
+void ISR_count2()  
+{
+  counter2++;  // increment Motor 2 counter value
+} 
+//x
 
   void test()
   {
