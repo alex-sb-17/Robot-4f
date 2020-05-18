@@ -1,6 +1,6 @@
 //#include <Arduino.h>
 
-float citesteDistanta(int trigger_pin, int echo_pin)
+float citesteDistanta(int trigger_pin, int echo_pin,int temp)
 {
   long durata; //lucram cu microsecunde
   float distanta;
@@ -17,7 +17,8 @@ float citesteDistanta(int trigger_pin, int echo_pin)
   // puteam face cu millis
 
   //Serial.println(durata);
-  distanta = (durata * 0.0342) / 2;
+  //distanta = (durata * 0.0342) / 2;
+  distanta = (durata * (0.03315 + 0.0000607*temp)) / 2;
   return distanta;
   /*
   Serial.print("Distanta: ");
