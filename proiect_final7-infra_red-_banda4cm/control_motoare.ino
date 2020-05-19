@@ -72,6 +72,6 @@ void controlDirectie (int directie , int viteza)
         digitalWrite(MotorA_1B, HIGH);
         digitalWrite(MotorB_1A, HIGH);
         digitalWrite(MotorB_1B, HIGH);
-        break;
+        break;  
   }
 }

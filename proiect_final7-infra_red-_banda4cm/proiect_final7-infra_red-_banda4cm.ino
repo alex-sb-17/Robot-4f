@@ -3,11 +3,11 @@
 #include <Servo.h>
 #include <FastLED.h>
 #include <IRremote.h>
-#include "TimerOne.h" //x
+#include "TimerOne.h"
 #include "ultrasunete.h"
 #include "control_motoare.h"
 
-#define Led_PIN 13
+#define Led_PIN 13  // banda leduri
 #define NUM_LEDS 8 
 CRGB leds[NUM_LEDS];
 
@@ -15,27 +15,28 @@ CRGB leds[NUM_LEDS];
 int received_from_WiFi = 0;  // initializat cu 0 (comanda de stop)
 
 // stare initiala robot: 1 = urmarire linie, 2 = ocolire obstacole, 3 = telecomandat IR, 4 = telecomandat WiFi
-int stare_robot = 1;
+int stare_robot;
+int stare_anterioara_robot;
 int temperatura = 22;
 
 // servomotor
 Servo servomotor;
 int pinServo = 9;
 
-// pin infrarosu
+// pin infrarosu telecomanda
 int pinIR = 12;
 IRrecv irrecv(pinIR);  // initializare library
 decode_results results;  // in results primeste rezulatele
 
 //interrupts
-const byte MOTOR1 = 2;  // Motor 1 Interrupt Pin - INT 0 //x
-const byte MOTOR2 = 3;  // Motor 2 Interrupt Pin - INT 1 //x
+const byte MOTOR1 = 2;  // Motor 1 Interrupt Pin - INT 0 
+const byte MOTOR2 = 3;  // Motor 2 Interrupt Pin - INT 1 
 
 // Integers for pulse counters
-unsigned int counter1 = 0; //x
-unsigned int counter2 = 0; //x
+unsigned int counter1 = 0; 
+unsigned int counter2 = 0; 
 
-float diskslots = 20; //x
+float diskslots = 20; 
 
 // builtin led state
 byte builtin_LED_prevState = 0;
@@ -66,6 +67,9 @@ void setup() {
   leds[0] = CRGB(128,0,0);
   leds[7] = CRGB(128,0,0);
   FastLED.show();
+  stare_robot = 1;
+  stare_anterioara_robot = 1;
+  aprindeLeduriSpate(0,50,20);
   
   pinMode(motor_a1, OUTPUT);
   pinMode(motor_a2, OUTPUT);
@@ -100,8 +104,8 @@ void setup() {
   
   irrecv.enableIRIn();
   
-  attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, RISING);  //x Increase counter 1 when speed sensor pin goes High
-  attachInterrupt(digitalPinToInterrupt (MOTOR2), ISR_count2, RISING);  //x Increase counter 2 when speed sensor pin goes High
+  attachInterrupt(digitalPinToInterrupt (MOTOR1), ISR_count1, RISING);  // Increase counter 1 when speed sensor pin goes High
+  attachInterrupt(digitalPinToInterrupt (MOTOR2), ISR_count2, RISING);  // Increase counter 2 when speed sensor pin goes High
   
   initializareMotoare(motor_a1, motor_a2, motor_b1, motor_b2);
 }
@@ -109,36 +113,43 @@ void setup() {
 void loop() {
   
   // directie: 0 stop; 1 inainte; 2 inapoi; 3 dr larg; 4 dr strans; 5 stg larg; 6 stg strans; 10 stop rapid
-  //test();
-  /*
-  if(!(millis() % 500))  // standby, builtin led on/off
-  {
-    builtinLedOnOff();  
-  } */
+
   //Serial.println("stare r = ");
   //Serial.print(stare_robot);
   //Serial.println("");
-  
+
   switch(stare_robot)
   {
     case 1:
     {
       //urmarireLinie();
-      aprindeLeduriSpate(0,50,20);
+      if (stare_anterioara_robot != 1)
+      {
+        aprindeLeduriSpate(0,50,20);
+        stare_anterioara_robot = 1;
+      }        
       
-      int x = 1*!digitalRead(S3) + 5*!digitalRead(S2) + 3*!digitalRead(S4)  ;
+      int x = 1*!digitalRead(S3) + 5*!digitalRead(S2) + 3*!digitalRead(S4) + 5*!digitalRead(S1) + 3*!digitalRead(S5);
       controlDirectie(x, 255 - 90*(!digitalRead(S2) + !digitalRead(S4)));
+    /*  if(!digitalRead(S1)) x = 5;
+        controlDirectie(x, 250);
+      if(!digitalRead(S5)) x = 3;
+        controlDirectie(x, 250); */
       //Serial.println(x);
       break;
     }
     case 2:
     {
-      aprindeLeduriSpate(0,180,180);
-      
+      if(stare_anterioara_robot != 2)
+      {
+        aprindeLeduriSpate(120,120,70);
+        stare_anterioara_robot = 2;
+      }
+     
       ocolireObstacole();
       
       //Serial.println("temp from wemos = ");
-      //  Serial.print(temperatura);
+      //Serial.print(temperatura);
       //intoarce_90_180(90, 6);
       //stare_robot = 1;
       //delay(3000);
@@ -146,13 +157,20 @@ void loop() {
     }
     case 3:
     {
-      aprindeLeduriSpate(200,0,130);
+      if(stare_anterioara_robot != 3)
+      {
+        aprindeLeduriSpate(200,0,130);
+        stare_anterioara_robot = 3;
+      }  
       break;
     }
     case 4:
     {
-      aprindeLeduriSpate(50,50,250);
-      
+      if(stare_anterioara_robot != 4)
+      {
+        aprindeLeduriSpate(10,10,150);
+        stare_anterioara_robot = 4;
+      }
       controlDirectie(received_from_WiFi, 255);
       
       Serial.println("received_from_WiFi = ");
@@ -162,6 +180,7 @@ void loop() {
     }
     default:
       controlDirectie(0, 0);
+      aprindeLeduriSpate(255,0,0);
   }
   /////////////////////////////////////////////////////////////////////////
   if(irrecv.decode(&results)) // daca senzorul primeste date
@@ -172,10 +191,7 @@ void loop() {
       tratareComandaIR(results.value);
       irrecv.resume();  // sterge din memorie
     }
-
- //test();
-  }
-
+}   // end loop
 
 void ocolireObstacole()
 {
@@ -239,7 +255,15 @@ void ocolireObstacole()
       delay(1000);
       if(distanta_obstacol_dreapta < 50 && distanta_obstacol_stanga < 50)
       {
+        leds[0] = CRGB(0,0,0);
+        leds[7] = CRGB(0,0,0);
+        FastLED.show();
+        delay(500);
+        leds[0] = CRGB(128,0,0);
+        leds[7] = CRGB(128,0,0);
+        FastLED.show();
         intoarce_90_180(180, 4); // intoarce 180 grade, la dreapta
+        
         delay(1000);
         controlDirectie(1, 255);
       }
@@ -248,6 +272,7 @@ void ocolireObstacole()
         if(distanta_obstacol_dreapta <= distanta_obstacol_stanga)
         {
           Serial.println("intorc la stanga");
+          semnalizeaza(7);
           intoarce_90_180(90, 6);  // stanga strans
           delay(1000);
           controlDirectie(1, 255);
@@ -255,6 +280,7 @@ void ocolireObstacole()
         else
         {
           Serial.println("intorc la dreapta");
+          semnalizeaza(0);
           intoarce_90_180(90, 4);  // dreapta strans
           delay(1000);
           controlDirectie(1, 255);
@@ -265,6 +291,7 @@ void ocolireObstacole()
     }
   }
 }
+
 void actioneazaServo(int pozitie_servo)
 {
   Serial.println("servo actionat");
@@ -274,6 +301,7 @@ void actioneazaServo(int pozitie_servo)
   servomotor.detach();
   delay(50);
 }
+
 void intoarce_90_180(byte grade, byte directie_intoarcere)
 {
   controlDirectie(0, 255);  // opreste
@@ -293,33 +321,35 @@ void intoarce_90_180(byte grade, byte directie_intoarcere)
 void tratareComandaIR(long int cod_comanda)
   {
     //Serial.println("rec ir activ");
+    if (cod_comanda == 0x44bb40bf || cod_comanda == 0x44bb609f || cod_comanda == 0x44bb50af || cod_comanda == 0x44bb807f || cod_comanda == 0x44bbc23d)
+    {
+      //aprindeLeduriSpate(200,0,130);
+      stare_robot = 3;
+    }
     switch(cod_comanda)
     {
       case 0x44bb40bf: 
         controlDirectie(0, 255);
-        stare_robot = 3;  // IR preia controlul si opreste robotul
         break;
       case 0x44bb609f: 
         controlDirectie(1, 255);
-        stare_robot = 3;
         break;
       case 0x44bb50af: 
         controlDirectie(2, 255);
-        stare_robot = 3;
         break;
       case 0x44bb807f: 
         controlDirectie(3, 255);
-        stare_robot = 3;
         break;
       case 0x44bbc23d: 
         controlDirectie(5, 255);
-        stare_robot = 3;
         break;
       case 0x44bbd22d:
         stare_robot = 1;  // preda controlul catre urmaritorul de linie
+        //aprindeLeduriSpate(0,50,20);
         controlDirectie(0, 255);
         break; 
       case 0x44bbda25:
+        //aprindeLeduriSpate(120,120,70);
         stare_robot = 2;  // preda controlul catre ocolitorul de obstacole
         controlDirectie(0, 255);
         break;         
@@ -357,27 +387,11 @@ void tratareComandaIR(long int cod_comanda)
     //Serial.println(received_from_WiFi);
   }
 
-  void requestEvent()
-  {
-    //int i = 7;
-    Wire.write(stare_robot);
-  //Serial.println(i);
-  }
+void requestEvent()
+{
+  Wire.write(stare_robot);
+}
   
-  void builtinLedOnOff()
-  {
-    if (builtin_LED_prevState == 0)
-    {
-      digitalWrite(13, HIGH);
-      builtin_LED_prevState = 1;
-    }
-    else
-    {
-      digitalWrite(13, LOW);
-      builtin_LED_prevState = 0;
-    }
-  }
-
 void aprindeLeduriSpate(byte R, byte G, byte B)
 {
     for(int i = 0; i < 6; i++)
@@ -385,6 +399,21 @@ void aprindeLeduriSpate(byte R, byte G, byte B)
         leds[i+1] = CRGB(R,G,B);
       }
       FastLED.show();
+}
+
+void semnalizeaza(int i)
+{
+  leds[i] = CRGB(0,0,0);
+  FastLED.show();
+  delay(500);
+  leds[i] = CRGB(128,0,0);
+  FastLED.show();
+  delay(500);
+  leds[i] = CRGB(0,0,0);
+  FastLED.show();
+  delay(500);
+  leds[i] = CRGB(128,0,0);
+  FastLED.show();
 }
 
 void ISR_count1()  
