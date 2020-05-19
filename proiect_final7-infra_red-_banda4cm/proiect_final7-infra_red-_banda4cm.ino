@@ -321,7 +321,8 @@ void intoarce_90_180(byte grade, byte directie_intoarcere)
 void tratareComandaIR(long int cod_comanda)
   {
     //Serial.println("rec ir activ");
-    if (cod_comanda == 0x44bb40bf || cod_comanda == 0x44bb609f || cod_comanda == 0x44bb50af || cod_comanda == 0x44bb807f || cod_comanda == 0x44bbc23d)
+    if (cod_comanda == 0x44bb40bf || cod_comanda == 0x44bb609f || cod_comanda == 0x44bb50af || cod_comanda == 0x44bb807f
+                                  || cod_comanda == 0x44bbc23d || cod_comanda == 0x44bbe21d || cod_comanda == 0x44bba05f)
     {
       //aprindeLeduriSpate(200,0,130);
       stare_robot = 3;
@@ -342,6 +343,12 @@ void tratareComandaIR(long int cod_comanda)
         break;
       case 0x44bbc23d: 
         controlDirectie(5, 255);
+        break;
+      case 0x44bbe21d: 
+        intoarce_90_180(90, 4);  // intoarce 90 grade la dreapta
+        break;
+      case 0x44bba05f: 
+        intoarce_90_180(90, 6);  // intoarce 90 grade la stanga
         break;
       case 0x44bbd22d:
         stare_robot = 1;  // preda controlul catre urmaritorul de linie
