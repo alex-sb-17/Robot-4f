@@ -1,6 +1,7 @@
 // versiune accesibila din internet
 // include senzor temp
 // include senzor ir de obstacole
+// include senzor CLP
 
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
@@ -30,8 +31,6 @@ const int16_t I2C_SLAVE = 0x08;
 
 float t = 22; // temperatura
 int stare_robot = 0;  // comunicata de arduino; 0 dc nu a primit date
-
-// de vazut de ce nu merge cu PROGMEM
 
 void setup() 
 {
@@ -68,11 +67,9 @@ void setup()
     server.on("/inapoi", handle_inapoi);
     server.on("/stanga", handle_stanga);
     server.on("/dreapta", handle_dreapta);
-    //server.on("/returnValue", handle_return);
     server.on("/returnTemperatura", handle_temperatura);
     server.on("/returnStare", handle_stare);
-    // start web server
-    server.begin();
+    server.begin();  // start web server
     Serial.println("Serverul a pornit!");
   
     Wire.begin(SDA_PIN, SCL_PIN, I2C_MASTER);
@@ -92,7 +89,7 @@ void loop()
   {
     trimite(100);  // a intilnit obstacol care a actionat clapeta frontala
   }
-  /////////////////////////////////
+ 
   if(!(millis()%10000))
   {
     t = dht.readTemperature();
@@ -108,9 +105,7 @@ void loop()
   if(!(millis()%1000))
   {
     Wire.requestFrom(I2C_SLAVE, 1);    // request 1 byte from slave device #8
-    //while (Wire.available()) { // slave may send less than requested
     stare_robot = Wire.read(); 
-    
     //Serial.println(stare_robot);
     //Serial.println(digitalRead(CLP_PIN));
   }
@@ -130,7 +125,7 @@ void trimite(int y)
 {
     Wire.beginTransmission(I2C_SLAVE); // transmit to device #8
     Wire.write(y);              // sends one byte
-    Serial.println("trimis comanda la arduino");
+    Serial.println("trimisa comanda la arduino");
     Serial.print(y);
     Serial.println(" ");
     Wire.endTransmission();    // stop transmitting
@@ -172,7 +167,6 @@ void handle_dreapta()
 
 void handle_temperatura() {
    t = dht.readTemperature();
-   //double t = analogRead(A0);
    String content = String(t);
    //Serial.print(t);
    server.send(200, "text/plain", content);

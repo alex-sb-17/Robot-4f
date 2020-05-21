@@ -11,7 +11,7 @@
 #define NUM_LEDS 8 
 CRGB leds[NUM_LEDS];
 
-#define SLAVE_ADDRESS 0x08    //#define ANSWERSIZE 1  // lungime raspuns asteptat de la slave
+#define SLAVE_ADDRESS 0x08    
 int received_from_WiFi = 0;  // initializat cu 0 (comanda de stop)
 
 // stare initiala robot: 1 = urmarire linie, 2 = ocolire obstacole, 3 = telecomandat IR, 4 = telecomandat WiFi
@@ -37,9 +37,6 @@ unsigned int counter1 = 0;
 unsigned int counter2 = 0; 
 
 float diskslots = 20; 
-
-// builtin led state
-//byte builtin_LED_prevState = 0;
 byte obstacol = 0;
 
 // pini comanda motoare
@@ -87,7 +84,7 @@ void setup() {
 
   pinMode(pinIR, INPUT);
 
-  pinMode(13, OUTPUT);  // builtin led
+  //pinMode(13, OUTPUT); 
 
   Wire.begin(SLAVE_ADDRESS);
   Wire.onRequest(requestEvent);
@@ -114,7 +111,7 @@ void loop() {
   
   // directie: 0 stop; 1 inainte; 2 inapoi; 3 dr larg; 4 dr strans; 5 stg larg; 6 stg strans; 10 stop rapid
 
-  //Serial.println("stare r = ");
+  //Serial.println("stare robot = ");
   //Serial.print(stare_robot);
   //Serial.println("");
 
@@ -133,7 +130,7 @@ void loop() {
       controlDirectie(x, 255 - 90*(!digitalRead(S2) + !digitalRead(S4)));
     /*  if(!digitalRead(S1)) x = 5;
         controlDirectie(x, 250);
-      if(!digitalRead(S5)) x = 3;
+        if(!digitalRead(S5)) x = 3;
         controlDirectie(x, 250); */
       //Serial.println(x);
       break;
@@ -182,7 +179,7 @@ void loop() {
       controlDirectie(0, 0);
       aprindeLeduriSpate(255,0,0);
   }
-  /////////////////////////////////////////////////////////////////////////
+  
   if(irrecv.decode(&results)) // daca senzorul primeste date
     {
       Serial.print("cod IRL ");
