@@ -39,7 +39,7 @@ unsigned int counter2 = 0;
 float diskslots = 20; 
 
 // builtin led state
-byte builtin_LED_prevState = 0;
+//byte builtin_LED_prevState = 0;
 byte obstacol = 0;
 
 // pini comanda motoare
@@ -391,7 +391,7 @@ void tratareComandaIR(long int cod_comanda)
       if(received_from_WiFi >= 0 & received_from_WiFi <= 5)
       stare_robot = 4;  // a receptionat altceva decat sesizare obstacol sau temperatura
     }
-    //Serial.println(received_from_WiFi);
+    Serial.println(received_from_WiFi);
   }
 
 void requestEvent()
