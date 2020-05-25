@@ -1,4 +1,3 @@
-#include <WiFiClient.h>
 #include <Wire.h>
 #include <Servo.h>
 #include <FastLED.h>
@@ -110,7 +109,6 @@ void setup() {
 void loop() {
   
   // directie: 0 stop; 1 inainte; 2 inapoi; 3 dr larg; 4 dr strans; 5 stg larg; 6 stg strans; 10 stop rapid
-
   //Serial.println("stare robot = ");
   //Serial.print(stare_robot);
   //Serial.println("");
@@ -128,10 +126,6 @@ void loop() {
       
       int x = 1*!digitalRead(S3) + 5*!digitalRead(S2) + 3*!digitalRead(S4) + 5*!digitalRead(S1) + 3*!digitalRead(S5);
       controlDirectie(x, 255 - 90*(!digitalRead(S2) + !digitalRead(S4)));
-    /*  if(!digitalRead(S1)) x = 5;
-        controlDirectie(x, 250);
-        if(!digitalRead(S5)) x = 3;
-        controlDirectie(x, 250); */
       //Serial.println(x);
       break;
     }
@@ -141,15 +135,8 @@ void loop() {
       {
         aprindeLeduriSpate(120,120,70);
         stare_anterioara_robot = 2;
-      }
-     
+      }   
       ocolireObstacole();
-      
-      //Serial.println("temp from wemos = ");
-      //Serial.print(temperatura);
-      //intoarce_90_180(90, 6);
-      //stare_robot = 1;
-      //delay(3000);
       break;
     }
     case 3:
